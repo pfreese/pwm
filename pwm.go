@@ -43,6 +43,7 @@ func (p Pwm) Validate() {
 	}
 }
 
+
 func (s ntSeq) Validate() {
 	for i, c := range s {
 		isNt := false
