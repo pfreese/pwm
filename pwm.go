@@ -5,6 +5,8 @@ import (
 	"math"
 )
 
+const minCount = 0.001
+
 type ntSeq string
 type Nt string
 type PosProb map[Nt]float64
@@ -78,4 +80,35 @@ func (p *Pwm) addPseudocount(pseudo float64) {
 		pPseudo[i] = pseudoProbs
 	}
 	*p = pPseudo
+}
+
+// Add a pseudocount if any entry is less than minCount
+func (p *Pwm) addPseudoIfNecessary() {
+	p.Validate()
+	var needsPseudo = false
+	for _, probs := range *p {
+		for _, nt := range nts {
+			if probs[nt] < minCount {
+				needsPseudo = true
+				break
+			}
+		}
+	}
+	if needsPseudo {
+		p.addPseudocount(minCount)
+	}
+}
+
+func (p *Pwm) scoreSeq(s ntSeq) (logProb float64) {
+	if len(s) != len(*p) || len(s) == 0 {
+		return math.Inf(-1)
+	}
+	for i, c := range s {
+		prob := (*p)[i][Nt(string(c))]
+		if prob == 0 {
+			return math.Inf(-1)
+		}
+		logProb += math.Log10(prob)
+	}
+	return logProb
 }

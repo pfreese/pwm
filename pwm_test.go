@@ -1,9 +1,12 @@
 package pwm
 
 import (
+	"math"
 	"reflect"
 	"testing"
 )
+
+const float64EqualityThreshold = 1e-9
 
 var pwmA = Pwm{
 	0: {"A": 1, "C": 0, "G": 0, "T": 0},
@@ -15,6 +18,25 @@ var pwmEq2 = Pwm{
 var pwmC2 = Pwm{
 	0: {"A": 0.1, "C": 0.7, "G": 0.1, "T": 0.1},
 	1: {"A": 0.1, "C": 0.7, "G": 0.1, "T": 0.1},
+}
+
+// Helper functions to test equality of PWMs and floats, within machine precision error
+func pwmsAreEqual(pwm1, pwm2 Pwm) bool {
+	if len(pwm1) != len(pwm2) {
+		return false
+	}
+	for i, probs1 := range pwm1 {
+		for _, nt := range nts {
+			if math.Abs(probs1[nt] - pwm2[i][nt]) > float64EqualityThreshold {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func almostEqual(a, b float64) bool {
+	return math.Abs(a - b) < float64EqualityThreshold
 }
 
 func TestValidatePWM(t *testing.T) {
@@ -195,5 +217,59 @@ func TestAddPseudocount(t *testing.T) {
 				t.Errorf("Failed to add pseudocount: expected %v, got %v", tt.expPwm, tt.pwm)
 			}
 		})
+	}
+}
+
+func TestAddPseudoIfNecessary(t *testing.T) {
+	tables := []struct {
+		name      string // name of the test
+		pwm       Pwm    // pwm to test
+		pseudo	float64    // pseudcount to add to each base
+		expPwm 	Pwm   // expected PWM after pseudocount
+	}{
+		{
+			"add 1 pseudocount to each nt",
+			Pwm{
+				0: {"A": 1, "C": 0, "G": 0, "T": 0},
+			},
+			1,
+			Pwm{
+				0: {"A": (1 + minCount)/(1 + 4*minCount),
+					"C": minCount/(1 + 4*minCount),
+					"G": minCount/(1 + 4*minCount),
+					"T": minCount/(1 + 4*minCount)},
+			},
+		},
+	}
+	for _, tt := range tables {
+		(&tt.pwm).addPseudoIfNecessary()
+		if !pwmsAreEqual(tt.pwm, tt.expPwm) {
+			t.Errorf("Failed to AddPseudoIfNecessary: expected %v, got %v", tt.expPwm, tt.pwm)
+		}
+	}
+}
+
+
+func TestScoreSeq(t *testing.T) {
+	tables := []struct {
+		name      string // name of the test
+		pwm       Pwm    // pwm to test
+		seq		ntSeq    // sequence to score
+		expScore 	float64   // expected PWM after pseudocount
+	}{
+		{
+			"add 1 pseudocount to each nt",
+			Pwm{
+				0: {"A": 1, "C": 0, "G": 0, "T": 0},
+			},
+			"A",
+			0.,
+		},
+	}
+	for _, tt := range tables {
+		score := (&tt.pwm).scoreSeq(tt.seq)
+		if !almostEqual(score, tt.expScore) {
+			t.Errorf("Failed to score: expected %v, got %v", tt.expScore, score)
+		}
 	}
 }
