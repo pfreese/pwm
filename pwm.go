@@ -5,6 +5,7 @@ import (
 	"math"
 )
 
+type ntSeq string
 type Nt string
 type PosProb map[Nt]float64
 type Pwm map[int]PosProb
@@ -15,7 +16,11 @@ func (c Nt) String() string {
 	return fmt.Sprintf("%v", string(c))
 }
 
-func (p Pwm) Validate() string {
+func (s ntSeq) String() string {
+	return fmt.Sprintf("%v", string(s))
+}
+
+func (p Pwm) Validate() {
 	for i := 0; i < len(p); i++ {
 		// panic if position is not in pwm
 		if _, ok := p[i]; !ok {
@@ -36,5 +41,11 @@ func (p Pwm) Validate() string {
 			panic(fmt.Sprintf("pos. %d prob sums to %f", i, prob))
 		}
 	}
-	return "ok"
 }
+
+
+func findBestMatch(s ntSeq) string {
+	fmt.Println(s)
+	return "hi"
+}
+
