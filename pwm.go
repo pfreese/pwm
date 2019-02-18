@@ -20,6 +20,8 @@ func (s ntSeq) String() string {
 	return fmt.Sprintf("%v", string(s))
 }
 
+// Ensure that a PWM (1) has positions indexed consecutively starting from 0,
+// (2) each position has "A", "C", "G", and "T" entries, and the 4 probabilities sum to 1
 func (p Pwm) Validate() {
 	for i := 0; i < len(p); i++ {
 		// panic if position is not in pwm
@@ -43,7 +45,7 @@ func (p Pwm) Validate() {
 	}
 }
 
-
+// Ensure that a ntSeq consists solely of "A", "C", "G", and "T"
 func (s ntSeq) Validate() {
 	for i, c := range s {
 		isNt := false
@@ -52,7 +54,6 @@ func (s ntSeq) Validate() {
 				isNt = true
 			}
 		}
-		// panic if position is not in pwm
 		if !isNt {
 			panic(fmt.Sprintf("position %d (=%v) not a valid nt ('A'/'C'/'G'/'T'", i, string(c)))
 		}
