@@ -15,17 +15,14 @@ var pwmC2 = Pwm{
 	0: {"A": 0.1, "C": 0.7, "G": 0.1, "T": 0.1},
 	1: {"A": 0.1, "C": 0.7, "G": 0.1, "T": 0.1},
 }
-var inPwmA = Pwm{
-	0: {"A": 0.25, "C": 0.25, "G": 0.25, "T": 0.25},
-}
 
 // Test for panics based on: https://stackoverflow.com/questions/31595791/how-to-test-panics
 // See kmers_test.go in rbns for how to test returned values if there is no panic
 func TestValidatePWM(t *testing.T) {
 	tables := []struct {
-		name 	string // name of the test
-		pwm Pwm // pwm to test
-		wantPanic bool // whether the test should trigger a panic
+		name 		string 	// name of the test
+		pwm 		Pwm 	// pwm to test
+		wantPanic 	bool 	// whether the test should trigger a panic
 	}{
 		{"valid pwmA",
 			pwmA,
@@ -85,9 +82,9 @@ func TestValidatePWM(t *testing.T) {
 
 func TestValidateNtSeq(t *testing.T) {
 	tables := []struct {
-		name 	string // name of the test
-		seq ntSeq // sequence to test
-		wantPanic bool // whether the test should trigger a panic
+		name 		string 	// name of the test
+		seq 		ntSeq 	// sequence to test
+		wantPanic	bool 	// whether the test should trigger a panic
 	}{
 		{"valid seq",
 			"ACGAAACTTAA",
