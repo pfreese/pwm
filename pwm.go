@@ -43,9 +43,18 @@ func (p Pwm) Validate() {
 	}
 }
 
-
-func findBestMatch(s ntSeq) string {
-	fmt.Println(s)
-	return "hi"
+func (s ntSeq) Validate() {
+	for i, c := range s {
+		isNt := false
+		for _, nt := range nts {
+			if Nt(string(c)) == nt {
+				isNt = true
+			}
+		}
+		// panic if position is not in pwm
+		if !isNt {
+			panic(fmt.Sprintf("position %d (=%v) not a valid nt ('A'/'C'/'G'/'T'", i, string(c)))
+		}
+	}
 }
 
