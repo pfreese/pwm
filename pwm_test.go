@@ -1,6 +1,7 @@
 package pwm
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -16,8 +17,6 @@ var pwmC2 = Pwm{
 	1: {"A": 0.1, "C": 0.7, "G": 0.1, "T": 0.1},
 }
 
-// Test for panics based on: https://stackoverflow.com/questions/31595791/how-to-test-panics
-// See kmers_test.go in rbns for how to test returned values if there is no panic
 func TestValidatePWM(t *testing.T) {
 	tables := []struct {
 		name 		string 	// name of the test
@@ -114,6 +113,87 @@ func TestValidateNtSeq(t *testing.T) {
 				}
 			}()
 			tt.seq.Validate()
+		})
+	}
+}
+
+func TestAddPseudocount(t *testing.T) {
+	tables := []struct {
+		name      string // name of the test
+		pwm       Pwm    // pwm to test
+		pseudo	float64    // pseudcount to add to each base
+		expPwm 	Pwm   // expected PWM after pseudocount
+		wantPanic 	bool   // whether the test should trigger a panic
+	}{
+		{
+			"add 1 pseudocount to each nt",
+			Pwm{
+				0: {"A": 1, "C": 0, "G": 0, "T": 0},
+			},
+			1,
+			Pwm{
+				0: {"A": 2./5, "C": 1./5, "G": 1./5, "T": 1./5},
+			},
+			false,
+		},
+		{
+			"add 1 pseudocount to all positions",
+			Pwm{
+				0: {"A": 1, "C": 0, "G": 0, "T": 0},
+				1: {"A": 0.5, "C": 0.5, "G": 0, "T": 0},
+			},
+			1,
+			Pwm{
+				0: {"A": 2./5, "C": 1./5, "G": 1./5, "T": 1./5},
+				1: {"A": 1.5/5, "C": 1.5/5, "G": 1./5, "T": 1./5},
+			},
+			false,
+		},
+		{
+			"add 0 pseudocount leaves original PWM",
+			Pwm{
+				0: {"A": 1, "C": 0, "G": 0, "T": 0},
+			},
+			0,
+			Pwm{
+				0: {"A": 1, "C": 0, "G": 0, "T": 0},
+			},
+			false,
+		},
+		{
+			"add 0.25 pseudocount",
+			Pwm{
+				0: {"A": 1, "C": 0, "G": 0, "T": 0},
+			},
+			0.25,
+			Pwm{
+				0: {"A": 1.25/2, "C": 0.25/2, "G": 0.25/2, "T": 0.25/2},
+			},
+			false,
+		},
+		{
+			"panic if pseudocount <0",
+			Pwm{
+				0: {"A": 1, "C": 0, "G": 0, "T": 0},
+			},
+			-0.25,
+			Pwm{},
+			true,
+		},
+	}
+	for _, tt := range tables {
+		// Test if there's a panic
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if (r != nil) != tt.wantPanic {
+					t.Errorf("addPseudocount() recover = %v, wantPanic = %v", r, tt.wantPanic)
+				}
+			}()
+			(&tt.pwm).addPseudocount(tt.pseudo)
+			if !reflect.DeepEqual(tt.pwm, tt.expPwm) {
+				t.Errorf("Failed to add pseudocount: expected %v, got %v", tt.expPwm, tt.pwm)
+			}
 		})
 	}
 }

@@ -60,3 +60,22 @@ func (s ntSeq) Validate() {
 	}
 }
 
+func (p *Pwm) addPseudocount(pseudo float64) {
+	p.Validate()
+	if pseudo < 0 {
+		panic(fmt.Sprintf("pseudo %f is less than 0", pseudo))
+	}
+	var countsWithPsuedo = 1 + 4*pseudo
+	//var pPseudo Pwm
+	pPseudo := make(Pwm)
+	for i, probs := range *p {
+		var pseudoProbs = PosProb{
+			"A": (probs["A"] + pseudo) / countsWithPsuedo,
+			"C": (probs["C"] + pseudo) / countsWithPsuedo,
+			"G": (probs["G"] + pseudo) / countsWithPsuedo,
+			"T": (probs["T"] + pseudo) / countsWithPsuedo,
+		}
+		pPseudo[i] = pseudoProbs
+	}
+	*p = pPseudo
+}
