@@ -8,6 +8,7 @@ import (
 
 const float64EqualityThreshold = 1e-9
 
+// PWMs to use in testing
 var pwmA = Pwm{
 	0: {"A": 1, "C": 0, "G": 0, "T": 0},
 }
@@ -35,8 +36,10 @@ func pwmsAreEqual(pwm1, pwm2 Pwm) bool {
 	return true
 }
 
+// Check two floats (including infinities) are equal
 func almostEqual(a, b float64) bool {
-	return math.Abs(a - b) < float64EqualityThreshold
+	// The check for equality is if they're both pos/neg infinity
+	return math.Abs(a - b) < float64EqualityThreshold || a == b
 }
 
 func TestValidatePWM(t *testing.T) {
@@ -228,7 +231,7 @@ func TestAddPseudoIfNecessary(t *testing.T) {
 		expPwm 	Pwm   // expected PWM after pseudocount
 	}{
 		{
-			"add 1 pseudocount to each nt",
+			"add pseudocount to each nt",
 			Pwm{
 				0: {"A": 1, "C": 0, "G": 0, "T": 0},
 			},
@@ -238,6 +241,34 @@ func TestAddPseudoIfNecessary(t *testing.T) {
 					"C": minCount/(1 + 4*minCount),
 					"G": minCount/(1 + 4*minCount),
 					"T": minCount/(1 + 4*minCount)},
+			},
+		},
+		{
+			"no pseudocount needed",
+			Pwm{
+				0: {"A": 0.25, "C": 0.25, "G": 0.4, "T": 0.1},
+			},
+			1,
+			Pwm{
+				0: {"A": 0.25, "C": 0.25, "G": 0.4, "T": 0.1},
+			},
+		},
+		{
+			"pseudocount added to each position",
+			Pwm{
+				0: {"A": 1, "C": 0, "G": 0, "T": 0},
+				1: {"A": 0.25, "C": 0.25, "G": 0.4, "T": 0.1},
+			},
+			1,
+			Pwm{
+				0: {"A": (1 + minCount)/(1 + 4*minCount),
+					"C": minCount/(1 + 4*minCount),
+					"G": minCount/(1 + 4*minCount),
+					"T": minCount/(1 + 4*minCount)},
+				1: {"A": (0.25 + minCount)/(1 + 4*minCount),
+					"C": (0.25 + minCount)/(1 + 4*minCount),
+					"G": (0.4 + minCount)/(1 + 4*minCount),
+					"T": (0.1 + minCount)/(1 + 4*minCount)},
 			},
 		},
 	}
@@ -258,12 +289,30 @@ func TestScoreSeq(t *testing.T) {
 		expScore 	float64   // expected PWM after pseudocount
 	}{
 		{
-			"add 1 pseudocount to each nt",
+			"single position",
 			Pwm{
-				0: {"A": 1, "C": 0, "G": 0, "T": 0},
+				0: {"A": 0.5, "C": 0.3, "G": 0.1, "T": 0.1},
 			},
 			"A",
-			0.,
+			math.Log10(0.5),
+		},
+		{
+			"sum of two positions",
+			Pwm{
+				0: {"A": 0.5, "C": 0.3, "G": 0.1, "T": 0.1},
+				1: {"A": 0.4, "C": 0.3, "G": 0.3, "T": 0.0},
+			},
+			"AA",
+			math.Log10(0.5) + math.Log10(0.4),
+		},
+		{
+			"0 probability at a position",
+			Pwm{
+				0: {"A": 0.5, "C": 0.3, "G": 0.1, "T": 0.1},
+				1: {"A": 0.4, "C": 0.3, "G": 0.3, "T": 0.0},
+			},
+			"AT",
+			math.Inf(-1),
 		},
 	}
 	for _, tt := range tables {
