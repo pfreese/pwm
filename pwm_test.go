@@ -1,6 +1,8 @@
 package pwm
 
 import (
+	"errors"
+	"gotest.tools/assert"
 	"math"
 	"reflect"
 	"testing"
@@ -322,3 +324,85 @@ func TestScoreSeq(t *testing.T) {
 		}
 	}
 }
+
+func TestGetBestMatchPos(t *testing.T) {
+	tables := []struct {
+		name      string // name of the test
+		pwm       Pwm    // pwm to test
+		seq			ntSeq    // sequence to score
+		expError	error // expected error string, or nil
+		expBestMatchPos 	int   // expected position of best match
+	}{
+		{
+			"first position is best match",
+			Pwm{
+				0: {"A": 0.5, "C": 0.3, "G": 0.1, "T": 0.1},
+			},
+			"AT",
+			nil,
+			0,
+		},
+		{
+			"second position is best match",
+			Pwm{
+				0: {"A": 0.5, "C": 0.3, "G": 0.1, "T": 0.1},
+			},
+			"TA",
+			nil,
+			1,
+		},
+		{
+			"test matching multiple positions",
+			Pwm{
+				0: {"A": 0.5, "C": 0.3, "G": 0.1, "T": 0.1},
+				1: {"A": 0.05, "C": 0.75, "G": 0.1, "T": 0.1},
+				2: {"A": 0.5, "C": 0.3, "G": 0.1, "T": 0.1},
+			},
+			"TGTATACGACAAGGCGAA", // ACA starts at index 8
+			nil,
+			8,
+		},
+		{
+			"0 probability at a position is OK",
+			Pwm{
+				0: {"A": 0.5, "C": 0.3, "G": 0.2, "T": 0.},
+				1: {"A": 0.05, "C": 0.75, "G": 0.1, "T": 0.1},
+				2: {"A": 0.5, "C": 0.3, "G": 0.1, "T": 0.1},
+			},
+			"TGTATACGACAAGGCGAA", // ACA starts at index 8
+			nil,
+			8,
+		},
+		{
+			"multiple matches returns the first occurrence",
+			Pwm{
+				0: {"A": 0.5, "C": 0.3, "G": 0.2, "T": 0.},
+				1: {"A": 0.05, "C": 0.75, "G": 0.1, "T": 0.1},
+			},
+			"TTACACACATT", // frist AC starts at index 2
+			nil,
+			2,
+		},
+		{
+			"error if PWM is longer than seq",
+			Pwm{
+				0: {"A": 0.5, "C": 0.3, "G": 0.2, "T": 0.},
+				1: {"A": 0.05, "C": 0.75, "G": 0.1, "T": 0.1},
+			},
+			"A",
+			errors.New("PWM longer than sequence"),
+			-1,
+		},
+	}
+	for _, tt := range tables {
+		bestMatchPos, err := (&tt.pwm).getBestMatchPos(tt.seq)
+		// Check error message if one was returned
+		if err != nil {
+			assert.ErrorContains(t, err, tt.expError.Error())
+		} else if bestMatchPos != tt.expBestMatchPos {
+			t.Errorf("Failed to get highest scoring position: expected %v, got %v",
+				tt.expBestMatchPos, bestMatchPos)
+		}
+	}
+}
+

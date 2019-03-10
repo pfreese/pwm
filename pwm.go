@@ -1,6 +1,7 @@
 package pwm
 
 import (
+	"errors"
 	"fmt"
 	"math"
 )
@@ -111,4 +112,26 @@ func (p *Pwm) scoreSeq(s ntSeq) (logProb float64) {
 		logProb += math.Log10(prob)
 	}
 	return logProb
+}
+
+
+func (p *Pwm) getBestMatchPos(s ntSeq) (pos int, err error) {
+	pwmLen := len(*p)
+	nCandStartPos := len(s) - pwmLen + 1
+	if nCandStartPos < 1 {
+		return -1, errors.New("PWM longer than sequence")
+	}
+	// Keep track of the best score and its position
+	bestScore := math.Inf(-1)
+	bestScoringPos := -1
+	for i := 0; i < nCandStartPos; i++ {
+		seqToScore := s[i:(i+pwmLen)]
+		score := p.scoreSeq(seqToScore)
+		// score is logprobability (i.e., negative), so higher score => better match
+		if score > bestScore {
+			bestScore = score
+			bestScoringPos = i
+		}
+	}
+	return bestScoringPos, nil
 }
